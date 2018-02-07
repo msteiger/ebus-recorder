@@ -14,6 +14,8 @@ public class MyMain {
 
         String message = "betrd";
 
+        Database db = new Database("jdbc:mariadb://raspberrypi/ebus_recorder?user=ebus_recorder&password=ebus");
+
         EbusClient client = new EbusClient(host, port);
         client.connect();
         List<String> fields = client.findFields(message);
@@ -27,11 +29,13 @@ public class MyMain {
                 for (int i = 0; i < values.size(); i++) {
                     map.put(fields.get(i), values.get(i));
                 }
+                db.insert(map);
             } catch (IOException e) {
 
             }
             run = false;
         }
         client.close();
+        db.close();
     }
 }
