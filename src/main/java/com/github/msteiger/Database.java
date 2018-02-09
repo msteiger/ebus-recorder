@@ -2,104 +2,66 @@ package com.github.msteiger;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.InsertSetStep;
-import org.jooq.Record;
-import org.jooq.SQLDialect;
-import org.jooq.Table;
-import org.jooq.impl.DSL;
-import org.jooq.impl.SQLDataType;
-import org.jooq.tools.jdbc.JDBCUtils;
-import org.jooq.types.UInteger;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO: describe
  */
 public class Database implements Closeable {
 
-    /**
-     * The column <code>ebus_recorder.betrd.id</code>.
-     */
-    public final Field<UInteger> ID = DSL.field("id", SQLDataType.INTEGERUNSIGNED.nullable(false).identity(true));
+    private static final Logger logger = LoggerFactory.getLogger(Database.class);
 
-    /**
-     * The column <code>ebus_recorder.betrd.timestamp</code>.
-     */
-    public final Field<Timestamp> TIMESTAMP = DSL.field("timestamp", SQLDataType.TIMESTAMP.nullable(false).defaultValue(DSL.field("CURRENT_TIMESTAMP", SQLDataType.TIMESTAMP)));
-
-    /**
-     * The column <code>ebus_recorder.betrd.status</code>.
-     */
-    public final Field<Short> STATUS = DSL.field("status", SQLDataType.SMALLINT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.zustand</code>.
-     */
-    public final Field<Short> ZUSTAND = DSL.field("zustand", SQLDataType.SMALLINT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.stellgrad</code>.
-     */
-    public final Field<Short> STELLGRAD = DSL.field("stellgrad", SQLDataType.SMALLINT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.kesseltemp</code>.
-     */
-    public final Field<Double> KESSELTEMP = DSL.field("kesseltemp", SQLDataType.FLOAT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.ruecklauftemp</code>.
-     */
-    public final Field<Double> RUECKLAUFTEMP = DSL.field("ruecklauftemp", SQLDataType.FLOAT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.aussentemp</code>.
-     */
-    public final Field<Double> AUSSENTEMP = DSL.field("aussentemp", SQLDataType.FLOAT.nullable(false));
-
-    /**
-     * The column <code>ebus_recorder.betrd.boilertemp</code>.
-     */
-    public final Field<Double> BOILERTEMP = DSL.field("boilertemp", SQLDataType.FLOAT.nullable(false));
-
-    private MariaDbPoolDataSource pool;
-    private DSLContext context;
-    private Table<Record> table;
+    private final MariaDbPoolDataSource pool;
 
     public Database(String jdbc) throws SQLException {
-        SQLDialect dialect = JDBCUtils.dialect(jdbc);
-
         pool = new MariaDbPoolDataSource(jdbc);
-        context = DSL.using(pool, dialect);
-        table = DSL.table(DSL.name("betrd"));
     }
 
-    public void insert(Map<String, String> data) throws SQLException {
-        long time = System.nanoTime();
-        InsertSetStep<Record> set = context.insertInto(table);
+    public void insert(String table, Map<String, String> data) throws SQLException {
+        char tq = '\u0060'; // MySQL and MariaDB use this char: `
+        char fq = '\u0060'; // MySQL and MariaDB use this char: `
+        char vq = '\'';
+        String tableName = tq + table + tq;
 
-//        .set(AUSSENTEMP, Double.valueOf(data.get("aussentemp")));
-//
-//        set.execute();
-        for (Entry<String, String> entry : data.entrySet()) {
-            Field<Object> field = DSL.field(DSL.name(entry.getKey()));
-            set.set(field, entry.getValue());
+        // there is no official guarantee that the iteration order is preserved
+        String fieldList = joinQuoted(data.keySet(), fq);
+        String valueList = joinQuoted(data.values(), vq);
+        String sql = String.format("insert into %s (%s) values (%s);", tableName, fieldList, valueList);
+
+        logger.trace("Executing SQL query: {}", sql);
+
+        long time = System.nanoTime();
+        try (Connection conn = pool.getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeQuery(sql);
+            }
         }
-        System.out.println(set.columns());
-        set.columns().execute();
-        context.close();
-        System.out.println("Took " + (System.nanoTime() - time) * 0.000001);
+        logger.debug("Took " + (System.nanoTime() - time) / 1000000 + " ms. to insert " + data.values());
     }
 
     @Override
     public void close() throws IOException {
         pool.close();
+    }
+
+    private static String joinQuoted(Collection<?> list, char q) {
+        StringBuffer sb = new StringBuffer();
+        Iterator<?> it = list.iterator();
+        while (it.hasNext()) {
+            sb.append(q + String.valueOf(it.next()) + q);
+            if (it.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 }

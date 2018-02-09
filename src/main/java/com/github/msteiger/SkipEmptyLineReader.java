@@ -5,18 +5,22 @@ import java.io.IOException;
 import java.io.Reader;
 
 /**
- * TODO: describe
+ * A line-based buffered reader that skips over empty lines.
  */
 public class SkipEmptyLineReader extends Reader {
 
     private BufferedReader reader;
 
+    /**
+     * @param reader a buffered reader
+     */
     public SkipEmptyLineReader(BufferedReader reader) {
         this.reader = reader;
     }
 
     /**
-     * Reads a line of text.  A line is considered to be terminated by any one
+     * Reads the next line of text that is not empty.
+     * A line is considered to be terminated by any one
      * of a line feed ('\n'), a carriage return ('\r'), or a carriage return
      * followed immediately by a linefeed.
      *
@@ -29,7 +33,7 @@ public class SkipEmptyLineReader extends Reader {
      * @see java.nio.file.Files#readAllLines
      */
     public String readLine() throws IOException {
-        String value = null;
+        String value;
         do {
             value = reader.readLine();
         }

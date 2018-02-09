@@ -23,13 +23,15 @@ public class EbusClient implements Closeable {
     /**
      * @param host
      * @param port
+     * @throws IOException
      */
-    public EbusClient(String host, int port) {
+    public EbusClient(String host, int port) throws IOException {
         this.host = host;
         this.port = port;
+        reconnect();
     }
 
-    public void connect() throws IOException {
+    public void reconnect() throws IOException {
         close();
         clientSocket = new Socket(host, port);
         writer = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8);

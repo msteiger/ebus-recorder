@@ -5,6 +5,7 @@ repositories {
 }
 
 dependencies {
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
     compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.2.1'
 
     testCompile 'junit:junit:4.12'
