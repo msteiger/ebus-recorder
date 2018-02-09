@@ -1,8 +1,13 @@
 apply plugin: 'java'
+apply plugin: 'application'
 
 repositories {
     mavenCentral()
 }
+
+group = 'com.github.msteiger'
+
+mainClassName = "com.github.msteiger.MyMain"
 
 dependencies {
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
