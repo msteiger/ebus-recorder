@@ -16,3 +16,16 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
+distributions {
+    main {
+      contents {
+        into("") {
+            from 'config.properties'
+        }
+      }
+    }
+}
+
+task deploy(type:Exec, dependsOn: installDist) {
+    commandLine 'scp', '-r', '-p', "build/install/$project.name", 'pi@raspberrypi:~'
+}

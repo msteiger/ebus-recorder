@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.mariadb.jdbc.MariaDbDataSource;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,14 @@ public class Database implements Closeable {
     private final MariaDbPoolDataSource pool;
 
     public Database(String jdbc) throws SQLException {
+        // getting a connection from the pool just times out, so you don't know
+        // what's wrong. So we run a test query first.
+        MariaDbDataSource testSource = new MariaDbDataSource(jdbc);
+        try (Connection conn = testSource.getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeQuery("SELECT 1");
+            }
+        }
         pool = new MariaDbPoolDataSource(jdbc);
     }
 
