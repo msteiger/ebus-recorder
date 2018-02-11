@@ -43,6 +43,8 @@ public class MyMain {
                 record(message, fields, client, db);
             }
         }
+
+        logger.info("Thread interrupted - terminating");
     }
 
     private static void record(String message, List<String> fields, EbusClient client, Database db) throws SQLException {
